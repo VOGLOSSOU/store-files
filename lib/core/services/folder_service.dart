@@ -56,8 +56,8 @@ class FolderService {
     final db = await _db.database;
     final rows = await db.query(
       'folders',
-      where: 'name LIKE ?',
-      whereArgs: ['%$query%'],
+      where: 'name LIKE ? OR description LIKE ?',
+      whereArgs: ['%$query%', '%$query%'],
       orderBy: 'name ASC',
     );
     return rows.map(Folder.fromMap).toList();
