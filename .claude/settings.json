@@ -6,7 +6,9 @@
       "Bash(flutter pub *)",
       "Bash(flutter analyze *)",
       "Bash(flutter build *)",
-      "Bash(flutter test *)"
+      "Bash(flutter test *)",
+      "Bash(python3 -c \"import cairosvg\")",
+      "Bash(pip3 install *)"
     ]
   }
 }

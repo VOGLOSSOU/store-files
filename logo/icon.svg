@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+
+  <!-- Fond Android Adaptive Icon -->
+  <rect width="512" height="512" rx="112" fill="#1565C0"/>
+
+  <!--
+    L'arche / A stylisé :
+    Deux piliers verticaux reliés par un arc bézier au sommet.
+    ARCA = "arche" en latin → le glyphe EST le nom.
+    Visuellement centré dans les 512px.
+  -->
+  <path
+    d="M 141 375
+       L 141 241
+       C 141 103 371 103 371 241
+       L 371 375"
+    fill="none"
+    stroke="#FFFFFF"
+    stroke-width="44"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+</svg>

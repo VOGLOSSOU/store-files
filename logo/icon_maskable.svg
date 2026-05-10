@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!--
+    Version maskable : fond carré plein (pas de coins arrondis).
+    L'icône Android peut masquer en cercle, en squircle, etc.
+    La zone sûre (80%) couvre x:51-461, y:51-461.
+    L'arche est centrée dans cette zone avec marges.
+  -->
+  <rect width="512" height="512" fill="#1565C0"/>
+
+  <path
+    d="M 141 375
+       L 141 241
+       C 141 103 371 103 371 241
+       L 371 375"
+    fill="none"
+    stroke="#FFFFFF"
+    stroke-width="44"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>
