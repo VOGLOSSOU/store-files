@@ -67,7 +67,7 @@ class FolderService {
     final db = await _db.database;
     final rows = await db.rawQuery('''
       SELECT f.* FROM folders f
-      JOIN tag_bindings tb ON tb.folder_id = f.id
+      JOIN folder_tag_bindings tb ON tb.folder_id = f.id
       WHERE tb.tag_id = ?
       ORDER BY f.name ASC
     ''', [tagId]);

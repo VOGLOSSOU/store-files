@@ -92,7 +92,7 @@ class DocumentService {
     final db = await _db.database;
     final rows = await db.rawQuery('''
       SELECT d.* FROM documents d
-      JOIN tag_bindings tb ON tb.document_id = d.id
+      JOIN document_tag_bindings tb ON tb.document_id = d.id
       WHERE tb.tag_id = ?
       ORDER BY d.name ASC
     ''', [tagId]);

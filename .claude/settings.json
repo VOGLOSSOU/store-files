@@ -8,7 +8,8 @@
       "Bash(flutter build *)",
       "Bash(flutter test *)",
       "Bash(python3 -c \"import cairosvg\")",
-      "Bash(pip3 install *)"
+      "Bash(pip3 install *)",
+      "Bash(keytool -genkey -v -keystore /home/nathan-voglossou/store-files/android/arca-release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias arca -dname 'CN=ARCA, OU=Mobile, O=ARCA, L=Unknown, S=Unknown, C=FR' -storepass arca2025 -keypass arca2025)"
     ]
   }
 }
