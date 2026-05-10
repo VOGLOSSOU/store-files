@@ -11,6 +11,7 @@ class DocumentCard extends StatelessWidget {
   final VoidCallback onDelete;
   final VoidCallback onShare;
   final VoidCallback onRename;
+  final VoidCallback onManageTags;
 
   const DocumentCard({
     super.key,
@@ -20,6 +21,7 @@ class DocumentCard extends StatelessWidget {
     required this.onDelete,
     required this.onShare,
     required this.onRename,
+    required this.onManageTags,
   });
 
   @override
@@ -79,6 +81,8 @@ class DocumentCard extends StatelessWidget {
                       onShare();
                     case _Action.rename:
                       onRename();
+                    case _Action.tags:
+                      onManageTags();
                     case _Action.delete:
                       onDelete();
                   }
@@ -101,10 +105,20 @@ class DocumentCard extends StatelessWidget {
                     ),
                   ),
                   const PopupMenuItem(
+                    value: _Action.tags,
+                    child: ListTile(
+                      leading: Icon(Icons.label_outline),
+                      title: Text('Étiquettes'),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                  const PopupMenuItem(
                     value: _Action.delete,
                     child: ListTile(
-                      leading: Icon(Icons.delete_outline, color: Colors.red),
-                      title: Text('Supprimer', style: TextStyle(color: Colors.red)),
+                      leading:
+                          Icon(Icons.delete_outline, color: Colors.red),
+                      title: Text('Supprimer',
+                          style: TextStyle(color: Colors.red)),
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),
@@ -118,4 +132,4 @@ class DocumentCard extends StatelessWidget {
   }
 }
 
-enum _Action { share, rename, delete }
+enum _Action { share, rename, tags, delete }

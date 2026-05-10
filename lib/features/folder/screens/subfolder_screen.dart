@@ -6,6 +6,7 @@ import '../../../core/models/folder.dart';
 import '../../../core/models/tag.dart';
 import '../../../core/services/document_service.dart';
 import '../../../core/services/tag_service.dart';
+import '../../../shared/widgets/tag_sheet.dart';
 import '../../document/screens/document_viewer_screen.dart';
 import '../widgets/document_card.dart';
 
@@ -107,6 +108,21 @@ class _SubfolderScreenState extends State<SubfolderScreen> {
     }
   }
 
+  void _openDocTagSheet(Document doc) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => TagSheet.forDocument(
+        documentId: doc.id!,
+        tagService: _tagService,
+        onChanged: _load,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -135,6 +151,7 @@ class _SubfolderScreenState extends State<SubfolderScreen> {
                         ShareParams(files: [XFile(d.filePath)]),
                       ),
                       onRename: () => _renameDoc(d),
+                      onManageTags: () => _openDocTagSheet(d),
                     );
                   },
                 ),

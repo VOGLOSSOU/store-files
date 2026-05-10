@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 
 class DatabaseHelper {
   static const _dbName = 'doc_manager.db';
-  static const _dbVersion = 1;
+  static const _dbVersion = 2;
 
   DatabaseHelper._();
   static final DatabaseHelper instance = DatabaseHelper._();
@@ -23,6 +23,7 @@ class DatabaseHelper {
       path,
       version: _dbVersion,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
       onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON'),
     );
   }
@@ -30,11 +31,11 @@ class DatabaseHelper {
   Future<void> _onCreate(Database db, int version) async {
     await db.execute('''
       CREATE TABLE folders (
-        id         INTEGER PRIMARY KEY AUTOINCREMENT,
-        name       TEXT    NOT NULL,
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        name        TEXT    NOT NULL,
         description TEXT,
-        parent_id  INTEGER REFERENCES folders(id) ON DELETE CASCADE,
-        created_at TEXT    NOT NULL
+        parent_id   INTEGER REFERENCES folders(id) ON DELETE CASCADE,
+        created_at  TEXT    NOT NULL
       )
     ''');
 
@@ -58,13 +59,54 @@ class DatabaseHelper {
       )
     ''');
 
+    // Deux tables séparées → pas de NULL dans les clés primaires
     await db.execute('''
-      CREATE TABLE tag_bindings (
-        tag_id      INTEGER NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
-        folder_id   INTEGER REFERENCES folders(id)   ON DELETE CASCADE,
-        document_id INTEGER REFERENCES documents(id) ON DELETE CASCADE,
-        PRIMARY KEY (tag_id, folder_id, document_id)
+      CREATE TABLE folder_tag_bindings (
+        tag_id    INTEGER NOT NULL REFERENCES tags(id)    ON DELETE CASCADE,
+        folder_id INTEGER NOT NULL REFERENCES folders(id) ON DELETE CASCADE,
+        PRIMARY KEY (tag_id, folder_id)
       )
     ''');
+
+    await db.execute('''
+      CREATE TABLE document_tag_bindings (
+        tag_id      INTEGER NOT NULL REFERENCES tags(id)      ON DELETE CASCADE,
+        document_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+        PRIMARY KEY (tag_id, document_id)
+      )
+    ''');
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      // Migre les données existantes de tag_bindings vers les deux nouvelles tables
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS folder_tag_bindings (
+          tag_id    INTEGER NOT NULL REFERENCES tags(id)    ON DELETE CASCADE,
+          folder_id INTEGER NOT NULL REFERENCES folders(id) ON DELETE CASCADE,
+          PRIMARY KEY (tag_id, folder_id)
+        )
+      ''');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS document_tag_bindings (
+          tag_id      INTEGER NOT NULL REFERENCES tags(id)      ON DELETE CASCADE,
+          document_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+          PRIMARY KEY (tag_id, document_id)
+        )
+      ''');
+
+      // Copie les liaisons folder depuis l'ancienne table si elle existe
+      await db.execute('''
+        INSERT OR IGNORE INTO folder_tag_bindings (tag_id, folder_id)
+        SELECT tag_id, folder_id FROM tag_bindings WHERE folder_id IS NOT NULL
+      ''').catchError((_) {});
+
+      await db.execute('''
+        INSERT OR IGNORE INTO document_tag_bindings (tag_id, document_id)
+        SELECT tag_id, document_id FROM tag_bindings WHERE document_id IS NOT NULL
+      ''').catchError((_) {});
+
+      await db.execute('DROP TABLE IF EXISTS tag_bindings');
+    }
   }
 }

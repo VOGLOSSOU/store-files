@@ -21,19 +21,3 @@ class Tag {
         colorValue: map['color_value'] as int,
       );
 }
-
-// Table de jointure (tag <-> dossier ou document)
-class TagBinding {
-  final int tagId;
-  final int? folderId;
-  final int? documentId;
-
-  const TagBinding({required this.tagId, this.folderId, this.documentId})
-      : assert(folderId != null || documentId != null);
-
-  Map<String, dynamic> toMap() => {
-        'tag_id': tagId,
-        'folder_id': folderId,
-        'document_id': documentId,
-      };
-}

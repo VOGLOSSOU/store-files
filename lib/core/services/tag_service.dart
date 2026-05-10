@@ -23,15 +23,25 @@ class TagService {
     return rows.map(Tag.fromMap).toList();
   }
 
+  /// Crée un tag ou retourne l'existant si le label est déjà pris.
   Future<Tag> createTag(String label) async {
     final db = await _db.database;
-    final colorIndex = (await getAllTags()).length % _defaultColors.length;
+
+    final existing = await db.query(
+      'tags',
+      where: 'label = ?',
+      whereArgs: [label],
+      limit: 1,
+    );
+    if (existing.isNotEmpty) return Tag.fromMap(existing.first);
+
+    final all = await getAllTags();
+    final colorIndex = all.length % _defaultColors.length;
     final tag = Tag(
       label: label,
       colorValue: _defaultColors[colorIndex].toARGB32(),
     );
-    final map = tag.toMap()..remove('id');
-    final id = await db.insert('tags', map);
+    final id = await db.insert('tags', tag.toMap()..remove('id'));
     return Tag(id: id, label: tag.label, colorValue: tag.colorValue);
   }
 
@@ -44,8 +54,9 @@ class TagService {
     final db = await _db.database;
     final rows = await db.rawQuery('''
       SELECT t.* FROM tags t
-      JOIN tag_bindings tb ON tb.tag_id = t.id
-      WHERE tb.folder_id = ?
+      JOIN folder_tag_bindings b ON b.tag_id = t.id
+      WHERE b.folder_id = ?
+      ORDER BY t.label ASC
     ''', [folderId]);
     return rows.map(Tag.fromMap).toList();
   }
@@ -54,8 +65,9 @@ class TagService {
     final db = await _db.database;
     final rows = await db.rawQuery('''
       SELECT t.* FROM tags t
-      JOIN tag_bindings tb ON tb.tag_id = t.id
-      WHERE tb.document_id = ?
+      JOIN document_tag_bindings b ON b.tag_id = t.id
+      WHERE b.document_id = ?
+      ORDER BY t.label ASC
     ''', [documentId]);
     return rows.map(Tag.fromMap).toList();
   }
@@ -63,8 +75,8 @@ class TagService {
   Future<void> bindToFolder(int tagId, int folderId) async {
     final db = await _db.database;
     await db.insert(
-      'tag_bindings',
-      {'tag_id': tagId, 'folder_id': folderId, 'document_id': null},
+      'folder_tag_bindings',
+      {'tag_id': tagId, 'folder_id': folderId},
       conflictAlgorithm: ConflictAlgorithm.ignore,
     );
   }
@@ -72,7 +84,7 @@ class TagService {
   Future<void> unbindFromFolder(int tagId, int folderId) async {
     final db = await _db.database;
     await db.delete(
-      'tag_bindings',
+      'folder_tag_bindings',
       where: 'tag_id = ? AND folder_id = ?',
       whereArgs: [tagId, folderId],
     );
@@ -81,8 +93,8 @@ class TagService {
   Future<void> bindToDocument(int tagId, int documentId) async {
     final db = await _db.database;
     await db.insert(
-      'tag_bindings',
-      {'tag_id': tagId, 'folder_id': null, 'document_id': documentId},
+      'document_tag_bindings',
+      {'tag_id': tagId, 'document_id': documentId},
       conflictAlgorithm: ConflictAlgorithm.ignore,
     );
   }
@@ -90,7 +102,7 @@ class TagService {
   Future<void> unbindFromDocument(int tagId, int documentId) async {
     final db = await _db.database;
     await db.delete(
-      'tag_bindings',
+      'document_tag_bindings',
       where: 'tag_id = ? AND document_id = ?',
       whereArgs: [tagId, documentId],
     );
