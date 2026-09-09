@@ -4,6 +4,12 @@ import '../models/folder.dart';
 class FolderService {
   final _db = DatabaseHelper.instance;
 
+  Future<Folder?> getById(int id) async {
+    final db = await _db.database;
+    final rows = await db.query('folders', where: 'id = ?', whereArgs: [id]);
+    return rows.isEmpty ? null : Folder.fromMap(rows.first);
+  }
+
   Future<List<Folder>> getRootFolders() async {
     final db = await _db.database;
     final rows = await db.query(
@@ -25,7 +31,11 @@ class FolderService {
     return rows.map(Folder.fromMap).toList();
   }
 
-  Future<Folder> create(String name, {String? description, int? parentId}) async {
+  Future<Folder> create(
+    String name, {
+    String? description,
+    int? parentId,
+  }) async {
     final db = await _db.database;
     final folder = Folder(
       name: name,
@@ -65,12 +75,15 @@ class FolderService {
 
   Future<List<Folder>> getByTag(int tagId) async {
     final db = await _db.database;
-    final rows = await db.rawQuery('''
+    final rows = await db.rawQuery(
+      '''
       SELECT f.* FROM folders f
       JOIN folder_tag_bindings tb ON tb.folder_id = f.id
       WHERE tb.tag_id = ?
       ORDER BY f.name ASC
-    ''', [tagId]);
+    ''',
+      [tagId],
+    );
     return rows.map(Folder.fromMap).toList();
   }
 }

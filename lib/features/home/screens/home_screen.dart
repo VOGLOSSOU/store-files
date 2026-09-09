@@ -8,6 +8,7 @@ import '../../../core/services/tag_service.dart';
 import '../../../shared/widgets/tag_sheet.dart';
 import '../../document/screens/document_viewer_screen.dart';
 import '../../folder/screens/folder_detail_screen.dart';
+import '../../scanner/screens/scanner_screen.dart';
 import '../../tags/screens/tag_filter_screen.dart';
 import '../widgets/folder_card.dart';
 
@@ -207,10 +208,28 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                   ),
                 ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showCreateDialog(),
-        tooltip: 'Nouveau dossier',
-        child: const Icon(Icons.create_new_folder),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton(
+            heroTag: 'scanner',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const ScannerScreen(),
+              ),
+            ).then((_) => _load()),
+            tooltip: 'Scanner un document',
+            child: const Icon(Icons.document_scanner),
+          ),
+          const SizedBox(height: 12),
+          FloatingActionButton(
+            heroTag: 'create_folder',
+            onPressed: () => _showCreateDialog(),
+            tooltip: 'Nouveau dossier',
+            child: const Icon(Icons.create_new_folder),
+          ),
+        ],
       ),
     );
   }

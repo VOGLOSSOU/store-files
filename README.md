@@ -1,4 +1,4 @@
-# Mon Classeur — Gestionnaire de documents personnel
+# ARCA — Gestionnaire de documents personnel
 
 Application Android (Flutter) de gestion de documents personnels en local. L'équivalent numérique d'un classeur physique : zéro cloud, zéro compte, zéro connexion internet requise. Tout reste sur l'appareil.
 
@@ -16,6 +16,21 @@ Application Android (Flutter) de gestion de documents personnels en local. L'éq
 - Import multi-fichiers en un seul geste
 - Renommer ou supprimer un fichier (la suppression retire aussi le fichier du disque)
 - Les fichiers importés sont copiés dans le répertoire privé de l'app (pas de dépendance au fichier source)
+
+### Scanner de documents
+- Photographier une ou plusieurs pages depuis l’accueil ou n’importe quel dossier
+- Aperçu des pages avec zoom, suppression, reprise d’une photo et changement d’ordre
+- Recadrage manuel à quatre coins et rotation à 90°
+- Génération locale d’un PDF A4 contenant toutes les pages dans l’ordre choisi
+- Nommer le PDF et choisir sa destination dans toute l’arborescence
+- Créer un dossier ou sous-dossier pendant le choix de destination
+- Dossier de départ présélectionné lorsque le scan est lancé depuis un dossier
+- Confirmation avant abandon, conservation des pages après un échec d’enregistrement
+- Gestion du refus de permission caméra et de la reprise après mise en arrière-plan
+
+Le scanner utilise des images, sans reconnaissance de texte (OCR). Le recadrage est manuel.
+Les traitements d’images et la génération PDF s’exécutent hors du thread d’interface.
+Les fichiers temporaires du scan sont nettoyés après l’import ; une seule copie définitive est conservée.
 
 ### Visionneuse
 - **PDF** : navigation par swipe, indicateur de page
@@ -55,6 +70,8 @@ Application Android (Flutter) de gestion de documents personnels en local. L'éq
 | Import | `file_picker` |
 | Partage | `share_plus` |
 | Visionneuse PDF | `flutter_pdfview` |
+| Capture photo | `camera` (audio désactivé) |
+| Images et génération PDF | `image`, `pdf` |
 | Permissions Android | `permission_handler` |
 
 ---
@@ -117,7 +134,7 @@ Les suppressions en cascade sont activées (`PRAGMA foreign_keys = ON`) : suppri
 
 ## Lancer le projet
 
-**Prérequis** : Flutter 3.x, Android SDK, un émulateur ou appareil Android connecté.
+**Prérequis** : Flutter avec Dart 3.11.3 ou compatible, Android SDK, un émulateur ou appareil Android 7.0 (API 24) minimum connecté.
 
 ```bash
 # Cloner le dépôt
@@ -151,3 +168,23 @@ Ces fonctionnalités sont envisageables en v2 sans changer l'architecture.
 - [ ] Verrouillage de l'app par code PIN ou biométrie
 - [ ] Export/backup de la base vers un ZIP
 - [ ] Support des fichiers XLSX et TXT
+
+
+## Vérifier le scanner
+
+```bash
+flutter analyze
+flutter test
+flutter build apk --debug
+```
+
+Les tests couvrent le recadrage, la rotation, les PDF à une ou plusieurs pages,
+l’import en base dans un dossier profond, les échecs d’import, les actions d’aperçu,
+la caméra simulée (capture, reprise, permissions, cycle de vie) et le classement depuis l’interface.
+
+À vérifier également sur un téléphone Android :
+1. Refuser puis autoriser la caméra depuis les paramètres.
+2. Photographier plusieurs feuilles, passer l’app en arrière-plan puis revenir.
+3. Recadrer, tourner, réordonner et reprendre une page ; vérifier sa lisibilité.
+4. Nommer le PDF, créer un sous-dossier de destination et enregistrer.
+5. Ouvrir le PDF dans ce dossier, vérifier le nombre et l’ordre des pages, puis le partager.

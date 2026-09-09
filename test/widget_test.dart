@@ -11,6 +11,6 @@ void main() {
   testWidgets('App démarre et affiche l\'écran d\'accueil', (tester) async {
     await tester.pumpWidget(const DocManagerApp());
     await tester.pump(); // premier frame — AppBar déjà rendu
-    expect(find.text('Mon Classeur'), findsOneWidget);
+    expect(find.text('ARCA'), findsOneWidget);
   });
 }

@@ -10,8 +10,8 @@ import '../../../core/services/tag_service.dart';
 import '../../../shared/widgets/tag_chip.dart';
 import '../../../shared/widgets/tag_sheet.dart';
 import '../../document/screens/document_viewer_screen.dart';
+import '../../scanner/screens/scanner_screen.dart';
 import '../widgets/document_card.dart';
-import 'subfolder_screen.dart';
 
 class FolderDetailScreen extends StatefulWidget {
   final Folder folder;
@@ -91,20 +91,25 @@ class _FolderDetailScreenState extends State<FolderDetailScreen> {
               controller: nameCtrl,
               autofocus: true,
               decoration: const InputDecoration(
-                  labelText: 'Nom *', border: OutlineInputBorder()),
+                labelText: 'Nom *',
+                border: OutlineInputBorder(),
+              ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: descCtrl,
               decoration: const InputDecoration(
-                  labelText: 'Description', border: OutlineInputBorder()),
+                labelText: 'Description',
+                border: OutlineInputBorder(),
+              ),
             ),
           ],
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Annuler')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annuler'),
+          ),
           FilledButton(
             onPressed: () {
               if (nameCtrl.text.trim().isEmpty) return;
@@ -119,8 +124,7 @@ class _FolderDetailScreenState extends State<FolderDetailScreen> {
     if (confirmed != true) return;
     await _folderService.create(
       nameCtrl.text.trim(),
-      description:
-          descCtrl.text.trim().isEmpty ? null : descCtrl.text.trim(),
+      description: descCtrl.text.trim().isEmpty ? null : descCtrl.text.trim(),
       parentId: widget.folder.id,
     );
     _load();
@@ -140,35 +144,42 @@ class _FolderDetailScreenState extends State<FolderDetailScreen> {
               controller: nameCtrl,
               autofocus: true,
               decoration: const InputDecoration(
-                  labelText: 'Nom *', border: OutlineInputBorder()),
+                labelText: 'Nom *',
+                border: OutlineInputBorder(),
+              ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: descCtrl,
               decoration: const InputDecoration(
-                  labelText: 'Description', border: OutlineInputBorder()),
+                labelText: 'Description',
+                border: OutlineInputBorder(),
+              ),
             ),
           ],
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Annuler')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annuler'),
+          ),
           FilledButton(
-              onPressed: () {
-                if (nameCtrl.text.trim().isEmpty) return;
-                Navigator.pop(ctx, true);
-              },
-              child: const Text('OK')),
+            onPressed: () {
+              if (nameCtrl.text.trim().isEmpty) return;
+              Navigator.pop(ctx, true);
+            },
+            child: const Text('OK'),
+          ),
         ],
       ),
     );
     if (ok != true) return;
-    await _folderService.update(f.copyWith(
-      name: nameCtrl.text.trim(),
-      description:
-          descCtrl.text.trim().isEmpty ? null : descCtrl.text.trim(),
-    ));
+    await _folderService.update(
+      f.copyWith(
+        name: nameCtrl.text.trim(),
+        description: descCtrl.text.trim().isEmpty ? null : descCtrl.text.trim(),
+      ),
+    );
     _load();
   }
 
@@ -178,11 +189,13 @@ class _FolderDetailScreenState extends State<FolderDetailScreen> {
       builder: (ctx) => AlertDialog(
         title: const Text('Supprimer le sous-dossier ?'),
         content: Text(
-            '« ${f.name} » et tous ses fichiers seront supprimés définitivement.'),
+          '« ${f.name} » et tous ses fichiers seront supprimés définitivement.',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Annuler')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annuler'),
+          ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
@@ -220,8 +233,9 @@ class _FolderDetailScreenState extends State<FolderDetailScreen> {
         content: Text('« ${doc.name} » sera supprimé définitivement.'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Annuler')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annuler'),
+          ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
@@ -249,11 +263,13 @@ class _FolderDetailScreenState extends State<FolderDetailScreen> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Annuler')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annuler'),
+          ),
           FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('OK')),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('OK'),
+          ),
         ],
       ),
     );
@@ -296,14 +312,29 @@ class _FolderDetailScreenState extends State<FolderDetailScreen> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _load,
-              child: _buildContent(),
-            ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _importFile,
-        icon: const Icon(Icons.upload_file),
-        label: const Text('Importer'),
+          : RefreshIndicator(onRefresh: _load, child: _buildContent()),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton(
+            heroTag: 'scanner',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ScannerScreen(folderId: widget.folder.id!),
+              ),
+            ).then((_) => _load()),
+            tooltip: 'Scanner un document',
+            child: const Icon(Icons.document_scanner),
+          ),
+          const SizedBox(height: 12),
+          FloatingActionButton.extended(
+            heroTag: 'import',
+            onPressed: _importFile,
+            icon: const Icon(Icons.upload_file),
+            label: const Text('Importer'),
+          ),
+        ],
       ),
     );
   }
@@ -333,54 +364,60 @@ class _FolderDetailScreenState extends State<FolderDetailScreen> {
         if (_subfolders.isNotEmpty) ...[
           _sectionLabel('Sous-dossiers'),
           const SizedBox(height: 8),
-          ..._subfolders.map((f) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _SubfolderTile(
-                  folder: f,
-                  tags: _folderTags[f.id] ?? [],
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => SubfolderScreen(folder: f)),
-                  ).then((_) => _load()),
-                  onRename: () => _renameSubfolder(f),
-                  onManageTags: () => _openSubfolderTagSheet(f),
-                  onDelete: () => _confirmDeleteSubfolder(f),
-                ),
-              )),
+          ..._subfolders.map(
+            (f) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _SubfolderTile(
+                folder: f,
+                tags: _folderTags[f.id] ?? [],
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => FolderDetailScreen(folder: f),
+                  ),
+                ).then((_) => _load()),
+                onRename: () => _renameSubfolder(f),
+                onManageTags: () => _openSubfolderTagSheet(f),
+                onDelete: () => _confirmDeleteSubfolder(f),
+              ),
+            ),
+          ),
           const SizedBox(height: 16),
         ],
         if (_docs.isNotEmpty) ...[
           _sectionLabel('Fichiers'),
           const SizedBox(height: 8),
-          ..._docs.map((d) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: DocumentCard(
-                  doc: d,
-                  tags: _docTags[d.id] ?? [],
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => DocumentViewerScreen(document: d)),
-                  ).then((_) => _load()),
-                  onDelete: () => _deleteDoc(d),
-                  onShare: () => _shareDoc(d),
-                  onRename: () => _renameDoc(d),
-                  onManageTags: () => _openDocTagSheet(d),
-                ),
-              )),
+          ..._docs.map(
+            (d) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: DocumentCard(
+                doc: d,
+                tags: _docTags[d.id] ?? [],
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => DocumentViewerScreen(document: d),
+                  ),
+                ).then((_) => _load()),
+                onDelete: () => _deleteDoc(d),
+                onShare: () => _shareDoc(d),
+                onRename: () => _renameDoc(d),
+                onManageTags: () => _openDocTagSheet(d),
+              ),
+            ),
+          ),
         ],
       ],
     );
   }
 
   Widget _sectionLabel(String text) => Text(
-        text,
-        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-              letterSpacing: 0.5,
-            ),
-      );
+    text,
+    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+      color: Theme.of(context).colorScheme.primary,
+      letterSpacing: 0.5,
+    ),
+  );
 }
 
 // ── Sous-dossier tile ─────────────────────────────────────────────────────────
@@ -419,15 +456,17 @@ class _SubfolderTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(folder.name,
-                        style: const TextStyle(fontWeight: FontWeight.w600)),
+                    Text(
+                      folder.name,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
                     if (folder.description != null) ...[
                       const SizedBox(height: 2),
                       Text(
                         folder.description!,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: cs.onSurfaceVariant,
-                            ),
+                          color: cs.onSurfaceVariant,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -474,10 +513,11 @@ class _SubfolderTile extends StatelessWidget {
                   const PopupMenuItem(
                     value: _SubAction.delete,
                     child: ListTile(
-                      leading:
-                          Icon(Icons.delete_outline, color: Colors.red),
-                      title: Text('Supprimer',
-                          style: TextStyle(color: Colors.red)),
+                      leading: Icon(Icons.delete_outline, color: Colors.red),
+                      title: Text(
+                        'Supprimer',
+                        style: TextStyle(color: Colors.red),
+                      ),
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),

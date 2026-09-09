@@ -31,33 +31,39 @@ class DocumentService {
     final fileName = _uniqueFileName(sourcePath);
     final destPath = '$storageDir/$fileName';
 
-    await File(sourcePath).copy(destPath);
-
-    final stat = await File(destPath).stat();
-    final ext = p.extension(sourcePath).replaceFirst('.', '');
-    final type = DocumentTypeExt.fromExtension(ext);
-
-    final doc = Document(
-      name: p.basenameWithoutExtension(sourcePath),
-      filePath: destPath,
-      type: type,
-      folderId: folderId,
-      fileSizeBytes: stat.size,
-      importedAt: DateTime.now(),
-    );
-
-    final db = await _db.database;
-    final map = doc.toMap()..remove('id');
-    final id = await db.insert('documents', map);
-    return Document(
-      id: id,
-      name: doc.name,
-      filePath: doc.filePath,
-      type: doc.type,
-      folderId: doc.folderId,
-      fileSizeBytes: doc.fileSizeBytes,
-      importedAt: doc.importedAt,
-    );
+    final destination = File(destPath);
+    try {
+      await File(sourcePath).copy(destPath);
+      final stat = await destination.stat();
+      final doc = Document(
+        name: p.basenameWithoutExtension(sourcePath),
+        filePath: destPath,
+        type: DocumentTypeExt.fromExtension(
+          p.extension(sourcePath).replaceFirst('.', ''),
+        ),
+        folderId: folderId,
+        fileSizeBytes: stat.size,
+        importedAt: DateTime.now(),
+      );
+      final db = await _db.database;
+      final id = await db.insert('documents', doc.toMap()..remove('id'));
+      return Document(
+        id: id,
+        name: doc.name,
+        filePath: doc.filePath,
+        type: doc.type,
+        folderId: doc.folderId,
+        fileSizeBytes: doc.fileSizeBytes,
+        importedAt: doc.importedAt,
+      );
+    } catch (_) {
+      try {
+        if (await destination.exists()) await destination.delete();
+      } on FileSystemException {
+        // Preserve the original import error if cleanup also fails.
+      }
+      rethrow;
+    }
   }
 
   Future<void> delete(Document doc) async {
@@ -90,19 +96,22 @@ class DocumentService {
 
   Future<List<Document>> getByTag(int tagId) async {
     final db = await _db.database;
-    final rows = await db.rawQuery('''
+    final rows = await db.rawQuery(
+      '''
       SELECT d.* FROM documents d
       JOIN document_tag_bindings tb ON tb.document_id = d.id
       WHERE tb.tag_id = ?
       ORDER BY d.name ASC
-    ''', [tagId]);
+    ''',
+      [tagId],
+    );
     return rows.map(Document.fromMap).toList();
   }
 
   String _uniqueFileName(String sourcePath) {
     final ext = p.extension(sourcePath);
     final base = p.basenameWithoutExtension(sourcePath);
-    final ts = DateTime.now().millisecondsSinceEpoch;
+    final ts = DateTime.now().microsecondsSinceEpoch;
     return '${base}_$ts$ext';
   }
 }
