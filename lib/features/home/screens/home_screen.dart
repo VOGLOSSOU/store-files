@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../../../core/models/document.dart';
 import '../../../core/models/folder.dart';
@@ -6,6 +7,11 @@ import '../../../core/services/document_service.dart';
 import '../../../core/services/folder_service.dart';
 import '../../../core/services/tag_service.dart';
 import '../../../shared/widgets/tag_sheet.dart';
+import '../../../shared/widgets/folder_export_dialog.dart';
+import '../../../shared/widgets/empty_state.dart';
+import '../../../shared/widgets/document_thumbnail.dart';
+import '../../../shared/theme/app_theme.dart';
+import '../../scanner/screens/folder_picker_screen.dart';
 import '../../document/screens/document_viewer_screen.dart';
 import '../../folder/screens/folder_detail_screen.dart';
 import '../../scanner/screens/scanner_screen.dart';
@@ -27,6 +33,10 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Folder> _folders = [];
   Map<int, List<Tag>> _folderTags = {};
   bool _loading = true;
+  bool _importing = false;
+  String? _error;
+  Map<int, int> _counts = {};
+  List<Document> _recent = [];
 
   @override
   void initState() {
@@ -35,18 +45,112 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
-    final folders = await _folderService.getRootFolders();
-    final tagsMap = <int, List<Tag>>{};
-    for (final f in folders) {
-      tagsMap[f.id!] = await _tagService.getTagsForFolder(f.id!);
-    }
     if (!mounted) return;
     setState(() {
-      _folders = folders;
-      _folderTags = tagsMap;
-      _loading = false;
+      _loading = true;
+      _error = null;
     });
+    try {
+      final folders = await _folderService.getRootFolders();
+      final counts = await _folderService.getItemCounts();
+      final recent = await _docService.getRecent();
+      final tagsMap = <int, List<Tag>>{};
+      for (final f in folders) {
+        tagsMap[f.id!] = await _tagService.getTagsForFolder(f.id!);
+      }
+      if (!mounted) return;
+      setState(() {
+        _folders = folders;
+        _folderTags = tagsMap;
+        _counts = counts;
+        _recent = recent;
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error = 'Impossible de charger tes documents.');
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _scan() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ScannerScreen()),
+    );
+    await _load();
+  }
+
+  Future<void> _search() async {
+    final result = await showSearch<Object?>(
+      context: context,
+      delegate: _GlobalSearchDelegate(_folderService, _docService, _tagService),
+    );
+    if (!mounted || result == null) return;
+    if (result is Folder) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => FolderDetailScreen(folder: result)),
+      );
+    } else if (result is Document) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => DocumentViewerScreen(document: result),
+        ),
+      );
+    }
+    await _load();
+  }
+
+  Future<void> _import() async {
+    if (_importing) return;
+    setState(() => _importing = true);
+    var imported = 0;
+    try {
+      final folder = await Navigator.push<Folder>(
+        context,
+        MaterialPageRoute(builder: (_) => const FolderPickerScreen()),
+      );
+      if (folder == null || !mounted) return;
+      final selection = await FilePicker.platform.pickFiles(
+        allowMultiple: true,
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'docx', 'doc', 'png', 'jpg', 'jpeg'],
+      );
+      if (selection == null) return;
+      for (final file in selection.files) {
+        if (file.path != null) {
+          await _docService.importFile(file.path!, folder.id!);
+          imported++;
+        }
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '$imported fichier(s) importé(s) dans « ${folder.name} ».',
+            ),
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Import interrompu : $imported fichier(s) enregistré(s). Réessaie pour les autres.',
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _importing = false);
+        await _load();
+      }
+    }
   }
 
   Future<void> _showCreateDialog({Folder? toEdit}) async {
@@ -82,8 +186,9 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Annuler')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annuler'),
+          ),
           FilledButton(
             onPressed: () {
               if (nameCtrl.text.trim().isEmpty) return;
@@ -100,15 +205,17 @@ class _HomeScreenState extends State<HomeScreen> {
     if (toEdit == null) {
       await _folderService.create(
         nameCtrl.text.trim(),
-        description:
-            descCtrl.text.trim().isEmpty ? null : descCtrl.text.trim(),
+        description: descCtrl.text.trim().isEmpty ? null : descCtrl.text.trim(),
       );
     } else {
-      await _folderService.update(toEdit.copyWith(
-        name: nameCtrl.text.trim(),
-        description:
-            descCtrl.text.trim().isEmpty ? null : descCtrl.text.trim(),
-      ));
+      await _folderService.update(
+        toEdit.copyWith(
+          name: nameCtrl.text.trim(),
+          description: descCtrl.text.trim().isEmpty
+              ? null
+              : descCtrl.text.trim(),
+        ),
+      );
     }
     _load();
   }
@@ -123,8 +230,9 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Annuler')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annuler'),
+          ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
@@ -156,110 +264,326 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ARCA'),
+        title: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.inventory_2_outlined,
+                size: 20,
+                color: theme.colorScheme.onPrimary,
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              'ARCA',
+              style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 2),
+            ),
+          ],
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.label_outline),
             tooltip: 'Filtrer par étiquette',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const TagFilterScreen()),
-            ),
+            onPressed: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const TagFilterScreen()),
+              );
+              await _load();
+            },
           ),
-          IconButton(
-            icon: const Icon(Icons.search),
-            tooltip: 'Recherche globale',
-            onPressed: () => showSearch(
-              context: context,
-              delegate: _GlobalSearchDelegate(
-                  _folderService, _docService, _tagService),
-            ),
-          ),
+          const SizedBox(width: 8),
         ],
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _folders.isEmpty
-              ? _emptyState()
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  child: ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _folders.length,
-                    separatorBuilder: (context, i) =>
-                        const SizedBox(height: 8),
-                    itemBuilder: (_, i) {
-                      final f = _folders[i];
-                      return FolderCard(
-                        folder: f,
-                        tags: _folderTags[f.id] ?? [],
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => FolderDetailScreen(folder: f),
-                          ),
-                        ).then((_) => _load()),
-                        onDelete: () => _confirmDelete(f),
-                        onEdit: () => _showCreateDialog(toEdit: f),
-                        onManageTags: () => _openTagSheet(f),
-                      );
-                    },
+      body: SafeArea(
+        top: false,
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 840),
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+                children: [
+                  Text(
+                    'Tout à sa place.',
+                    style: theme.textTheme.headlineMedium,
                   ),
-                ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FloatingActionButton(
-            heroTag: 'scanner',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const ScannerScreen(),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Tes documents, simplement organisés.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+                  Material(
+                    color: theme.colorScheme.surface,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(color: theme.colorScheme.outlineVariant),
+                    ),
+                    child: InkWell(
+                      onTap: _search,
+                      borderRadius: BorderRadius.circular(16),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.search,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Retrouver un document…',
+                                style: TextStyle(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.all(22),
+                    decoration: BoxDecoration(
+                      color: AppTheme.ink,
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(
+                              Icons.document_scanner_outlined,
+                              color: AppTheme.accent,
+                              size: 28,
+                            ),
+                            SizedBox(width: 10),
+                            Text(
+                              'DU PAPIER AU PDF',
+                              style: TextStyle(
+                                color: AppTheme.accent,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 18),
+                        Text(
+                          'Un scan. Et c’est classé.',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Une ou plusieurs pages, réunies dans un PDF et rangées au bon endroit.',
+                          style: TextStyle(
+                            color: Color(0xFFCCDAE4),
+                            height: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        FilledButton.icon(
+                          onPressed: _scan,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppTheme.accent,
+                            foregroundColor: AppTheme.ink,
+                          ),
+                          icon: const Icon(
+                            Icons.add_a_photo_outlined,
+                            size: 20,
+                          ),
+                          label: const Text('Scanner un document'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _importing ? null : _import,
+                          icon: const Icon(
+                            Icons.file_upload_outlined,
+                            size: 20,
+                          ),
+                          label: Text(_importing ? 'Import…' : 'Importer'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _showCreateDialog(),
+                          icon: const Icon(
+                            Icons.create_new_folder_outlined,
+                            size: 20,
+                          ),
+                          label: const Text('Créer un dossier'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 28),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Mes dossiers',
+                          style: theme.textTheme.titleLarge,
+                        ),
+                      ),
+                      if (!_loading)
+                        Text(
+                          '${_folders.length}',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  if (_loading)
+                    const Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (_error != null)
+                    EmptyState(
+                      icon: Icons.cloud_off_outlined,
+                      title: 'Chargement interrompu',
+                      message: _error!,
+                      actionLabel: 'Réessayer',
+                      onAction: _load,
+                    )
+                  else if (_folders.isEmpty)
+                    EmptyState(
+                      icon: Icons.folder_open_rounded,
+                      title: 'Ton classeur commence ici',
+                      message:
+                          'Crée un dossier pour tes factures, tes papiers ou tes projets.',
+                      actionLabel: 'Créer mon premier dossier',
+                      onAction: () => _showCreateDialog(),
+                    )
+                  else
+                    ..._folders.map(
+                      (f) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: FolderCard(
+                          folder: f,
+                          itemCount: _counts[f.id] ?? 0,
+                          tags: _folderTags[f.id] ?? [],
+                          onTap: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => FolderDetailScreen(folder: f),
+                              ),
+                            );
+                            await _load();
+                          },
+                          onDelete: () => _confirmDelete(f),
+                          onExport: () => showFolderExportDialog(context, f),
+                          onEdit: () => _showCreateDialog(toEdit: f),
+                          onManageTags: () => _openTagSheet(f),
+                        ),
+                      ),
+                    ),
+                  if (!_loading && _error == null && _recent.isNotEmpty) ...[
+                    const SizedBox(height: 18),
+                    Text(
+                      'Ajoutés récemment',
+                      style: theme.textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 14),
+                    ..._recent.map(
+                      (doc) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Card(
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
+                            leading: DocumentThumbnail(document: doc, size: 48),
+                            title: Text(
+                              doc.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            subtitle: Text(
+                              '${doc.type.name.toUpperCase()} · ${doc.sizeLabel}',
+                            ),
+                            trailing: const Icon(Icons.chevron_right, size: 20),
+                            onTap: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      DocumentViewerScreen(document: doc),
+                                ),
+                              );
+                              await _load();
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.offline_pin_outlined,
+                        size: 15,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 7),
+                      Flexible(
+                        child: Text(
+                          'Sur ton appareil. Sans compte.',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ).then((_) => _load()),
-            tooltip: 'Scanner un document',
-            child: const Icon(Icons.document_scanner),
+            ),
           ),
-          const SizedBox(height: 12),
-          FloatingActionButton(
-            heroTag: 'create_folder',
-            onPressed: () => _showCreateDialog(),
-            tooltip: 'Nouveau dossier',
-            child: const Icon(Icons.create_new_folder),
-          ),
-        ],
+        ),
       ),
     );
   }
-
-  Widget _emptyState() => Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.folder_open, size: 72, color: Colors.grey.shade400),
-            const SizedBox(height: 16),
-            Text(
-              'Aucun dossier',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(color: Colors.grey),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Appuie sur + pour créer ton premier dossier',
-              style: TextStyle(color: Colors.grey),
-            ),
-          ],
-        ),
-      );
 }
 
 // ── Recherche globale ────────────────────────────────────────────────────────
 
-class _GlobalSearchDelegate extends SearchDelegate {
+class _GlobalSearchDelegate extends SearchDelegate<Object?> {
   final FolderService _folderService;
   final DocumentService _docService;
 
@@ -270,14 +594,14 @@ class _GlobalSearchDelegate extends SearchDelegate {
 
   @override
   List<Widget> buildActions(BuildContext context) => [
-        IconButton(icon: const Icon(Icons.clear), onPressed: () => query = ''),
-      ];
+    IconButton(icon: const Icon(Icons.clear), onPressed: () => query = ''),
+  ];
 
   @override
   Widget buildLeading(BuildContext context) => IconButton(
-        icon: const Icon(Icons.arrow_back),
-        onPressed: () => close(context, null),
-      );
+    icon: const Icon(Icons.arrow_back),
+    onPressed: () => close(context, null),
+  );
 
   @override
   Widget buildResults(BuildContext context) => _buildBody(context);
@@ -293,6 +617,13 @@ class _GlobalSearchDelegate extends SearchDelegate {
     return FutureBuilder<_SearchResult>(
       future: _search(query.trim()),
       builder: (ctx, snap) {
+        if (snap.hasError) {
+          return const EmptyState(
+            icon: Icons.search_off,
+            title: 'Recherche indisponible',
+            message: 'Réessaie dans un instant.',
+          );
+        }
         if (!snap.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -304,39 +635,32 @@ class _GlobalSearchDelegate extends SearchDelegate {
           children: [
             if (result.folders.isNotEmpty) ...[
               _header(ctx, 'Dossiers'),
-              ...result.folders.map((f) => ListTile(
-                    leading: Icon(Icons.folder,
-                        color: Theme.of(ctx).colorScheme.primary),
-                    title: Text(f.name),
-                    subtitle: f.description != null ? Text(f.description!) : null,
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      close(ctx, null);
-                      Navigator.push(
-                        ctx,
-                        MaterialPageRoute(
-                            builder: (_) => FolderDetailScreen(folder: f)),
-                      );
-                    },
-                  )),
+              ...result.folders.map(
+                (f) => ListTile(
+                  leading: Icon(
+                    Icons.folder,
+                    color: Theme.of(ctx).colorScheme.primary,
+                  ),
+                  title: Text(f.name),
+                  subtitle: f.description != null ? Text(f.description!) : null,
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => close(ctx, f),
+                ),
+              ),
             ],
             if (result.docs.isNotEmpty) ...[
               _header(ctx, 'Fichiers'),
-              ...result.docs.map((d) => ListTile(
-                    leading: _docIcon(d),
-                    title: Text(d.name),
-                    subtitle: Text(
-                        '${d.type.name.toUpperCase()} · ${d.sizeLabel}'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      close(ctx, null);
-                      Navigator.push(
-                        ctx,
-                        MaterialPageRoute(
-                            builder: (_) => DocumentViewerScreen(document: d)),
-                      );
-                    },
-                  )),
+              ...result.docs.map(
+                (d) => ListTile(
+                  leading: _docIcon(d),
+                  title: Text(d.name),
+                  subtitle: Text(
+                    '${d.type.name.toUpperCase()} · ${d.sizeLabel}',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => close(ctx, d),
+                ),
+              ),
             ],
           ],
         );
@@ -351,24 +675,23 @@ class _GlobalSearchDelegate extends SearchDelegate {
   }
 
   Widget _header(BuildContext ctx, String label) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-        child: Text(
-          label,
-          style: Theme.of(ctx).textTheme.labelLarge?.copyWith(
-                color: Theme.of(ctx).colorScheme.primary,
-              ),
-        ),
-      );
+    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+    child: Text(
+      label,
+      style: Theme.of(ctx).textTheme.labelLarge?.copyWith(
+        color: Theme.of(ctx).colorScheme.primary,
+      ),
+    ),
+  );
 
   Widget _docIcon(Document d) {
     final (icon, color) = switch (d.type) {
       DocumentType.pdf => (Icons.picture_as_pdf, Colors.red.shade600),
-      DocumentType.docx || DocumentType.doc =>
-        (Icons.description, Colors.blue.shade600),
+      DocumentType.docx ||
+      DocumentType.doc => (Icons.description, Colors.blue.shade600),
       DocumentType.png ||
       DocumentType.jpg ||
-      DocumentType.jpeg =>
-        (Icons.image, Colors.green.shade600),
+      DocumentType.jpeg => (Icons.image, Colors.green.shade600),
       _ => (Icons.insert_drive_file, Colors.grey),
     };
     return Icon(icon, color: color);

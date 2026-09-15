@@ -101,8 +101,9 @@ class _TagSheetState extends State<TagSheet> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Annuler')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annuler'),
+          ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
@@ -130,15 +131,20 @@ class _TagSheetState extends State<TagSheet> {
         top: 16,
       ),
       child: _loading
-          ? const SizedBox(height: 80, child: Center(child: CircularProgressIndicator()))
+          ? const SizedBox(
+              height: 80,
+              child: Center(child: CircularProgressIndicator()),
+            )
           : Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Text('Étiquettes',
-                        style: Theme.of(context).textTheme.titleMedium),
+                    Text(
+                      'Étiquettes',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
                     const Spacer(),
                     IconButton(
                       icon: const Icon(Icons.close),
@@ -162,16 +168,19 @@ class _TagSheetState extends State<TagSheet> {
                     ),
                     const SizedBox(width: 8),
                     FilledButton(
-                        onPressed: _createAndAttach,
-                        child: const Text('Créer')),
+                      onPressed: _createAndAttach,
+                      child: const Text('Créer'),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 if (_all.isEmpty)
                   const Padding(
                     padding: EdgeInsets.only(bottom: 8),
-                    child: Text('Aucune étiquette',
-                        style: TextStyle(color: Colors.grey)),
+                    child: Text(
+                      'Aucune étiquette',
+                      style: TextStyle(color: Colors.grey),
+                    ),
                   )
                 else
                   Wrap(
@@ -190,10 +199,9 @@ class _TagSheetState extends State<TagSheet> {
                 const SizedBox(height: 8),
                 Text(
                   'Appui long sur une étiquette pour la supprimer',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: Colors.grey),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: Colors.grey),
                 ),
                 const SizedBox(height: 8),
               ],

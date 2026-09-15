@@ -4,6 +4,8 @@ import 'package:path_provider/path_provider.dart';
 
 import '../database/database_helper.dart';
 import '../models/document.dart';
+import 'thumbnail_service.dart';
+import 'file_cleanup_service.dart';
 
 class DocumentService {
   final _db = DatabaseHelper.instance;
@@ -13,6 +15,16 @@ class DocumentService {
     final dir = Directory('${appDir.path}/documents');
     if (!await dir.exists()) await dir.create(recursive: true);
     return dir.path;
+  }
+
+  Future<List<Document>> getRecent({int limit = 4}) async {
+    final db = await _db.database;
+    final rows = await db.query(
+      'documents',
+      orderBy: 'imported_at DESC',
+      limit: limit,
+    );
+    return rows.map(Document.fromMap).toList();
   }
 
   Future<List<Document>> getByFolder(int folderId) async {
@@ -47,6 +59,9 @@ class DocumentService {
       );
       final db = await _db.database;
       final id = await db.insert('documents', doc.toMap()..remove('id'));
+      if (doc.type.isPdf) {
+        ThumbnailService.generatePdfThumbnail(destPath).catchError((_) => null);
+      }
       return Document(
         id: id,
         name: doc.name,
@@ -68,9 +83,19 @@ class DocumentService {
 
   Future<void> delete(Document doc) async {
     final db = await _db.database;
-    await db.delete('documents', where: 'id = ?', whereArgs: [doc.id]);
-    final file = File(doc.filePath);
-    if (await file.exists()) await file.delete();
+    await db.transaction((txn) async {
+      final rows = await txn.query(
+        'documents',
+        columns: ['file_path'],
+        where: 'id = ?',
+        whereArgs: [doc.id],
+      );
+      for (final row in rows) {
+        await FileCleanupService.enqueue(txn, row['file_path'] as String);
+      }
+      await txn.delete('documents', where: 'id = ?', whereArgs: [doc.id]);
+    });
+    await FileCleanupService.drain(db);
   }
 
   Future<void> rename(Document doc, String newName) async {

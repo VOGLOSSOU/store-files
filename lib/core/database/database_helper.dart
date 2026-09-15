@@ -1,9 +1,11 @@
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
+import '../services/file_cleanup_service.dart';
+
 class DatabaseHelper {
   static const _dbName = 'doc_manager.db';
-  static const _dbVersion = 2;
+  static const _dbVersion = 3;
 
   DatabaseHelper._();
   static final DatabaseHelper instance = DatabaseHelper._();
@@ -24,11 +26,13 @@ class DatabaseHelper {
       version: _dbVersion,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
+      onOpen: FileCleanupService.drain,
       onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON'),
     );
   }
 
   Future<void> _onCreate(Database db, int version) async {
+    await _createCleanupTable(db);
     await db.execute('''
       CREATE TABLE folders (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -77,6 +81,12 @@ class DatabaseHelper {
     ''');
   }
 
+  Future<void> _createCleanupTable(Database db) => db.execute('''
+    CREATE TABLE pending_file_deletions (
+      file_path TEXT PRIMARY KEY NOT NULL
+    )
+  ''');
+
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
       // Migre les données existantes de tag_bindings vers les deux nouvelles tables
@@ -95,18 +105,38 @@ class DatabaseHelper {
         )
       ''');
 
-      // Copie les liaisons folder depuis l'ancienne table si elle existe
-      await db.execute('''
-        INSERT OR IGNORE INTO folder_tag_bindings (tag_id, folder_id)
-        SELECT tag_id, folder_id FROM tag_bindings WHERE folder_id IS NOT NULL
-      ''').catchError((_) {});
-
-      await db.execute('''
-        INSERT OR IGNORE INTO document_tag_bindings (tag_id, document_id)
-        SELECT tag_id, document_id FROM tag_bindings WHERE document_id IS NOT NULL
-      ''').catchError((_) {});
-
-      await db.execute('DROP TABLE IF EXISTS tag_bindings');
+      final legacy = await db.query(
+        'sqlite_master',
+        columns: ['name'],
+        where: 'type = ? AND name = ?',
+        whereArgs: ['table', 'tag_bindings'],
+      );
+      if (legacy.isNotEmpty) {
+        // onUpgrade is transactional: any copy failure preserves the old table.
+        // DISTINCT handles duplicate legacy bindings without hiding bad data.
+        await db.execute('''
+          INSERT INTO folder_tag_bindings (tag_id, folder_id)
+          SELECT DISTINCT old.tag_id, old.folder_id FROM tag_bindings old
+          WHERE old.folder_id IS NOT NULL
+          AND NOT EXISTS (
+            SELECT 1 FROM folder_tag_bindings current
+            WHERE current.tag_id = old.tag_id
+              AND current.folder_id = old.folder_id
+          )
+        ''');
+        await db.execute('''
+          INSERT INTO document_tag_bindings (tag_id, document_id)
+          SELECT DISTINCT old.tag_id, old.document_id FROM tag_bindings old
+          WHERE old.document_id IS NOT NULL
+          AND NOT EXISTS (
+            SELECT 1 FROM document_tag_bindings current
+            WHERE current.tag_id = old.tag_id
+              AND current.document_id = old.document_id
+          )
+        ''');
+        await db.execute('DROP TABLE tag_bindings');
+      }
     }
+    if (oldVersion < 3) await _createCleanupTable(db);
   }
 }

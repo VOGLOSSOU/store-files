@@ -1,0 +1,4 @@
+storeFile=arca-release.jks
+storePassword=REPLACE_ME
+keyAlias=arca
+keyPassword=REPLACE_ME

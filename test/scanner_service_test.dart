@@ -138,12 +138,20 @@ void main() {
         expect((await DocumentService().getByFolder(leaf.id!)).length, 2);
         expect(await File(first.filePath).exists(), isTrue);
         expect(await temporary.list().toList(), isEmpty);
-        expect(await Directory('${documents.path}/documents').list().length, 2);
+        final docs1 = await Directory('${documents.path}/documents')
+            .list()
+            .where((e) => e.path.endsWith('.pdf'))
+            .toList();
+        expect(docs1.length, 2);
         await expectLater(
           service.saveDocument(pages: [page], name: 'Échec', folderId: -1),
           throwsA(isA<DatabaseException>()),
         );
-        expect(await Directory('${documents.path}/documents').list().length, 2);
+        final docs2 = await Directory('${documents.path}/documents')
+            .list()
+            .where((e) => e.path.endsWith('.pdf'))
+            .toList();
+        expect(docs2.length, 2);
         expect(await temporary.list().toList(), isEmpty);
       } finally {
         await (await DatabaseHelper.instance.database).close();

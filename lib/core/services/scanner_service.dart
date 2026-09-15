@@ -8,6 +8,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import '../models/document.dart';
 import 'document_service.dart';
+import 'thumbnail_service.dart';
 
 class ScannedPage {
   final Uint8List originalBytes;
@@ -59,7 +60,18 @@ class ScannerService {
     try {
       final file = File('${staging.path}/$title.pdf');
       await file.writeAsBytes(bytes, flush: true);
-      return await DocumentService().importFile(file.path, folderId);
+      final document = await DocumentService().importFile(file.path, folderId);
+      if (pages.isNotEmpty) {
+        try {
+          await ThumbnailService.generatePdfThumbnail(
+            document.filePath,
+            firstPageBytes: pages.first.effectiveBytes,
+          );
+        } catch (_) {
+          // Thumbnail failure should never block saving the document.
+        }
+      }
+      return document;
     } finally {
       // A cleanup failure must not turn a successful import into a retry.
       try {

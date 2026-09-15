@@ -40,6 +40,15 @@ Les fichiers temporaires du scan sont nettoyés après l’import ; une seule co
 ### Partage
 - Partager n'importe quel fichier en un tap via WhatsApp, email ou toute autre app présente sur l'appareil (intent Android standard)
 
+### Export d’un dossier en ZIP
+- Menu du dossier → **Exporter en ZIP**, depuis l’accueil, une carte de sous-dossier ou le menu du dossier ouvert.
+- L’archive contient le dossier sélectionné, ses documents et toute son arborescence, y compris les dossiers vides.
+- Les noms affichés dans ARCA sont conservés avec les extensions des fichiers. Les caractères incompatibles sont remplacés, les noms très longs raccourcis et les doublons suffixés pour éviter les écrasements à l’extraction.
+- La création s’exécute en arrière-plan, puis ouvre le partage Android. Choisir une application destinataire pour partager ou conserver le ZIP ; les destinations proposées dépendent des applications installées.
+- Un fichier manquant ou illisible fait échouer l’export, sans partager d’archive partielle.
+- Les exports temporaires sont conservés pour les applications destinataires, puis nettoyés lors d’un nouvel export après sept jours. Le système peut également libérer le cache.
+- Cet export contient les fichiers et leur classement, sans la base SQLite, les étiquettes ni les descriptions. Il ne constitue pas une sauvegarde restaurable de toute l’application.
+
 ### Étiquettes (tags)
 - Créer des étiquettes personnalisées avec couleur automatique
 - Attacher plusieurs étiquettes à un dossier ou un fichier
@@ -188,3 +197,12 @@ la caméra simulée (capture, reprise, permissions, cycle de vie) et le classeme
 3. Recadrer, tourner, réordonner et reprendre une page ; vérifier sa lisibilité.
 4. Nommer le PDF, créer un sous-dossier de destination et enregistrer.
 5. Ouvrir le PDF dans ce dossier, vérifier le nombre et l’ordre des pages, puis le partager.
+
+### Signature Android release
+
+Copier `android/key.properties.example` vers `android/key.properties`, puis
+renseigner les identifiants du keystore. Le chemin `storeFile` est relatif à
+`android/app` (ou absolu). Le fichier de propriétés et les keystores sont exclus
+de Git. Conserver ces fichiers en lieu sûr : ils sont nécessaires aux mises à jour
+signées. Sans cette configuration, la signature release échoue ; le développement
+en debug reste disponible.

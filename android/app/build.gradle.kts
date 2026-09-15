@@ -1,7 +1,16 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+val signingProperties = Properties().apply {
+    val propertiesFile = rootProject.file("key.properties")
+    if (propertiesFile.exists()) {
+        propertiesFile.inputStream().use { load(it) }
+    }
 }
 
 android {
@@ -28,10 +37,10 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("arca-release.jks")
-            storePassword = "arca2025"
-            keyAlias = "arca"
-            keyPassword = "arca2025"
+            storeFile = signingProperties.getProperty("storeFile")?.let { file(it) }
+            storePassword = signingProperties.getProperty("storePassword")
+            keyAlias = signingProperties.getProperty("keyAlias")
+            keyPassword = signingProperties.getProperty("keyPassword")
         }
     }
 
@@ -50,4 +59,20 @@ android {
 
 flutter {
     source = "../.."
+}
+
+// Fail explicitly instead of producing an unsigned release when secrets are absent.
+tasks.configureEach {
+    if (name == "validateSigningRelease" ||
+        name == "packageRelease" ||
+        name == "packageReleaseBundle") {
+        doFirst {
+            val required = listOf("storeFile", "storePassword", "keyAlias", "keyPassword")
+            if (required.any { signingProperties.getProperty(it).isNullOrBlank() }) {
+                throw GradleException(
+                    "Configure android/key.properties using android/key.properties.example before building a release."
+                )
+            }
+        }
+    }
 }

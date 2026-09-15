@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/models/document.dart';
 import '../../../core/models/tag.dart';
-import '../../../shared/widgets/doc_type_icon.dart';
+import '../../../shared/widgets/document_thumbnail.dart';
 import '../../../shared/widgets/tag_chip.dart';
 
 class DocumentCard extends StatelessWidget {
@@ -30,20 +30,12 @@ class DocumentCard extends StatelessWidget {
     return Card(
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Center(child: DocTypeIcon(type: doc.type, size: 28)),
-              ),
+              DocumentThumbnail(document: doc),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -51,17 +43,18 @@ class DocumentCard extends StatelessWidget {
                   children: [
                     Text(
                       doc.name,
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleSmall
-                          ?.copyWith(fontWeight: FontWeight.w600),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '${doc.type.name.toUpperCase()} · ${doc.sizeLabel}',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     ),
                     if (tags.isNotEmpty) ...[
                       const SizedBox(height: 6),
@@ -75,6 +68,7 @@ class DocumentCard extends StatelessWidget {
                 ),
               ),
               PopupMenuButton<_Action>(
+                tooltip: 'Options du document',
                 onSelected: (a) {
                   switch (a) {
                     case _Action.share:
@@ -115,10 +109,11 @@ class DocumentCard extends StatelessWidget {
                   const PopupMenuItem(
                     value: _Action.delete,
                     child: ListTile(
-                      leading:
-                          Icon(Icons.delete_outline, color: Colors.red),
-                      title: Text('Supprimer',
-                          style: TextStyle(color: Colors.red)),
+                      leading: Icon(Icons.delete_outline, color: Colors.red),
+                      title: Text(
+                        'Supprimer',
+                        style: TextStyle(color: Colors.red),
+                      ),
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),
