@@ -62,20 +62,37 @@ class _FolderExportDialogState extends State<_FolderExportDialog> {
   Future<void> _share() async {
     final archive = _archive;
     if (archive == null || _busy) return;
-    final box = context.findRenderObject() as RenderBox?;
-    final origin = box == null
-        ? null
-        : box.localToGlobal(Offset.zero) & box.size;
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
-      await SharePlus.instance.share(ShareParams(
-        files: [XFile(archive.path, mimeType: 'application/zip')],
-        title: p.basename(archive.path),
-        sharePositionOrigin: origin,
-      ));
+      if (!await archive.exists()) {
+        if (mounted) {
+          setState(() {
+            _archive = null;
+            _error = 'L’archive temporaire n’est plus disponible. Réessaie pour la recréer.';
+          });
+        }
+        return;
+      }
+      if (!mounted) return;
+      final renderObject = context.findRenderObject();
+      final origin = renderObject is RenderBox && renderObject.hasSize
+          ? renderObject.localToGlobal(Offset.zero) & renderObject.size
+          : null;
+      final result = await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(archive.path, mimeType: 'application/zip')],
+          title: p.basename(archive.path),
+          sharePositionOrigin: origin,
+        ),
+      );
+      if (mounted && result.status == ShareResultStatus.unavailable) {
+        setState(() {
+          _error = 'Le résultat du partage n’est pas disponible. Vérifie dans l’application destinataire que le ZIP a bien été reçu.';
+        });
+      }
     } catch (_) {
       if (mounted) {
         setState(() => _error = 'Le partage n’a pas pu s’ouvrir. Tu peux réessayer.');
@@ -107,11 +124,16 @@ class _FolderExportDialogState extends State<_FolderExportDialog> {
               ] else if (_archive != null) ...[
                 const Text('Ton archive est prête.'),
                 const SizedBox(height: 8),
-                const Text('Partage-la ou choisis une application de fichiers dans le menu de partage pour la conserver.'),
+                const Text(
+                  'Partage-la ou choisis une application de fichiers dans le menu de partage pour la conserver.',
+                ),
               ],
               if (_error != null) ...[
                 const SizedBox(height: 12),
-                Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                Text(
+                  _error!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
               ],
             ],
           ),

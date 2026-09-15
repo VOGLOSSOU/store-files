@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:archive/archive_io.dart';
@@ -71,8 +72,16 @@ class FolderExportService {
 
 String _safeName(String value) {
   var name = value.replaceAll(RegExp(r'[\\/:*?"<>|\x00-\x1f\x7f]'), '_').trim();
-  // Bound each component by UTF-8 size, including room for collision suffixes.
-  name = String.fromCharCodes(name.runes.take(50));
+  // Keep ordinary names intact and leave room for extensions and suffixes.
+  final characters = <int>[];
+  var byteLength = 0;
+  for (final rune in name.runes) {
+    final size = utf8.encode(String.fromCharCode(rune)).length;
+    if (byteLength + size > 200) break;
+    characters.add(rune);
+    byteLength += size;
+  }
+  name = String.fromCharCodes(characters);
   name = name.replaceFirst(RegExp(r'[. ]+$'), '');
   if (name.isEmpty) name = 'Sans nom';
   if (RegExp(r'^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\.|$)',
@@ -90,6 +99,15 @@ String _uniqueName(Set<String> used, String stem, [String extension = '']) {
     name = '$stem (${suffix++})$extension';
   }
   return name;
+}
+
+void _checkZipPath(String path) {
+  // ZIP stores filename length in an unsigned 16-bit field, even in ZIP64.
+  if (utf8.encode(path).length > 65535) {
+    throw const FormatException(
+      'Ce dossier contient une arborescence trop profonde pour un ZIP. Exporte un sous-dossier.',
+    );
+  }
 }
 
 String _writeZip((int, List<Folder>, List<Document>, String) input) {
@@ -117,7 +135,9 @@ String _writeZip((int, List<Folder>, List<Document>, String) input) {
       if (!visited.add(id)) {
         throw const FormatException('L’arborescence du dossier est invalide.');
       }
-      encoder.add(ArchiveFile.directory('$path/'));
+      _checkZipPath('$path/');
+      // Unix directory type plus 0755 permissions for desktop extraction.
+      encoder.add(ArchiveFile.directory('$path/')..mode = 0x41ed);
       final usedNames = <String>{};
       for (final child in children[id] ?? <Folder>[]) {
         final name = _uniqueName(usedNames, _safeName(child.name));
@@ -134,10 +154,18 @@ String _writeZip((int, List<Folder>, List<Document>, String) input) {
           title = title.substring(0, title.length - extension.length);
         }
         final name = _uniqueName(usedNames, _safeName(title), extension);
-        InputFileStream? source;
+        final entryPath = '$path/$name';
+        _checkZipPath(entryPath);
+        final InputFileStream source;
         try {
           source = InputFileStream(document.filePath);
-          final entry = ArchiveFile.stream('$path/$name', source);
+        } on FileSystemException {
+          throw FormatException(
+            'Impossible de lire « ${document.name} ». Vérifie que le fichier est accessible.',
+          );
+        }
+        try {
+          final entry = ArchiveFile.stream(entryPath, source);
           // The encoder buffers compressed data per file. Store large files
           // directly to keep memory bounded, while still producing a valid ZIP.
           if (source.length > 16 * 1024 * 1024) {
@@ -145,12 +173,8 @@ String _writeZip((int, List<Folder>, List<Document>, String) input) {
           }
           entry.lastModTime = document.importedAt.millisecondsSinceEpoch ~/ 1000;
           encoder.add(entry, autoClose: false);
-        } on FileSystemException {
-          throw FormatException(
-            'Impossible de lire « ${document.name} ». Vérifie que le fichier est accessible.',
-          );
         } finally {
-          source?.closeSync();
+          source.closeSync();
         }
       }
     }
