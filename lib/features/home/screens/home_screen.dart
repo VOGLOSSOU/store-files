@@ -301,15 +301,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
                 children: [
-                  Text(
-                    'Tout à sa place.',
-                    style: theme.textTheme.headlineMedium,
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Tes documents, simplement organisés.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Tes documents, simplement organisés.',
+                      maxLines: 1,
+                      style: theme.textTheme.headlineMedium,
                     ),
                   ),
                   const SizedBox(height: 22),
@@ -381,31 +379,33 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _importing ? null : _import,
-                          icon: const Icon(
-                            Icons.file_upload_outlined,
-                            size: 20,
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _importing ? null : _import,
+                            icon: const Icon(
+                              Icons.file_upload_outlined,
+                              size: 20,
+                            ),
+                            label: Text(_importing ? 'Import…' : 'Importer'),
                           ),
-                          label: Text(_importing ? 'Import…' : 'Importer'),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => _showCreateDialog(),
-                          icon: const Icon(
-                            Icons.create_new_folder_outlined,
-                            size: 20,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => _showCreateDialog(),
+                            icon: const Icon(
+                              Icons.create_new_folder_outlined,
+                              size: 20,
+                            ),
+                            label: const Text('Créer un dossier'),
                           ),
-                          label: const Text('Créer un dossier'),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 28),
                   Row(
