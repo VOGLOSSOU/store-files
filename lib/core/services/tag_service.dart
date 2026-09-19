@@ -6,15 +6,17 @@ import '../models/tag.dart';
 class TagService {
   final _db = DatabaseHelper.instance;
 
+  // Famille tonale bleu → ardoise, dans l'esprit du logo (#1565C0) : les tags
+  // restent distinguables sans sortir de l'identité de l'app.
   static const _defaultColors = [
-    Colors.blue,
-    Colors.green,
-    Colors.orange,
-    Colors.red,
-    Colors.purple,
-    Colors.teal,
-    Colors.pink,
-    Colors.indigo,
+    Color(0xFF64B5F6), // Bleu clair
+    Color(0xFF1E88E5), // Bleu
+    Color(0xFF1565C0), // Bleu ARCA
+    Color(0xFF0D47A1), // Bleu profond
+    Color(0xFF01579B), // Bleu pétrole
+    Color(0xFF37474F), // Ardoise foncé
+    Color(0xFF546E7A), // Ardoise
+    Color(0xFF78909C), // Ardoise clair
   ];
 
   Future<List<Tag>> getAllTags() async {

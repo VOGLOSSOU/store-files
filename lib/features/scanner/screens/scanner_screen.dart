@@ -256,6 +256,7 @@ class _ScannerScreenState extends State<ScannerScreen>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final camera = _camera;
     return PopScope(
       canPop: _allowExit,
@@ -263,10 +264,7 @@ class _ScannerScreenState extends State<ScannerScreen>
         if (!didPop) _requestExit();
       },
       child: Scaffold(
-        backgroundColor: Colors.black,
         appBar: AppBar(
-          backgroundColor: Colors.black,
-          foregroundColor: Colors.white,
           title: Text('Scanner · ${_pages.length} page(s)'),
           leading: IconButton(
             onPressed: _busy ? null : _requestExit,
@@ -296,7 +294,7 @@ class _ScannerScreenState extends State<ScannerScreen>
                             children: [
                               Text(
                                 _error ?? 'Caméra en pause',
-                                style: const TextStyle(color: Colors.white),
+                                style: TextStyle(color: theme.colorScheme.onSurface),
                                 textAlign: TextAlign.center,
                               ),
                               TextButton(
@@ -318,7 +316,7 @@ class _ScannerScreenState extends State<ScannerScreen>
                   children: [
                     Text(
                       'Reprendre la page ${_retakeIndex! + 1}',
-                      style: const TextStyle(color: Colors.white),
+                      style: TextStyle(color: theme.colorScheme.onSurface),
                     ),
                     TextButton(
                       onPressed: _busy
