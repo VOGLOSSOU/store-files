@@ -11,8 +11,6 @@ class DocManagerApp extends StatelessWidget {
       title: 'ARCA',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.system,
       home: const HomeScreen(),
     );
   }

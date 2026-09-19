@@ -1,31 +1,31 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  static const ink = Color(0xFF183D59);
-  static const accent = Color(0xFFE9B96E);
-  static ThemeData get light => _build(Brightness.light);
-  static ThemeData get dark => _build(Brightness.dark);
+  // Couleurs du logo ARCA : fond blanc, bleu en accent.
+  static const primary = Color(0xFF1565C0);
+  static const background = Color(0xFFFFFFFF);
+  static const surface = Color(0xFFFFFFFF);
+  static const border = Color(0xFFE3E8ED);
+  static const onSurfaceMuted = Color(0xFF5C6C79);
 
-  static ThemeData _build(Brightness brightness) {
-    final dark = brightness == Brightness.dark;
-    final scheme = ColorScheme.fromSeed(seedColor: ink, brightness: brightness)
-        .copyWith(
-          primary: dark ? const Color(0xFFA7D2ED) : ink,
-          onPrimary: dark ? ink : Colors.white,
-          surface: dark ? const Color(0xFF17222B) : Colors.white,
-          onSurface: dark ? const Color(0xFFE7EDF2) : const Color(0xFF203443),
-          onSurfaceVariant: dark
-              ? const Color(0xFFB1BFC9)
-              : const Color(0xFF5C6C79),
-          outlineVariant: dark
-              ? const Color(0xFF34434E)
-              : const Color(0xFFE2E8ED),
-        );
+  static ThemeData get light => _build();
+
+  static ThemeData _build() {
+    final scheme = ColorScheme.fromSeed(
+      seedColor: primary,
+      brightness: Brightness.light,
+    ).copyWith(
+      primary: primary,
+      onPrimary: Colors.white,
+      surface: surface,
+      onSurface: const Color(0xFF16202B),
+      onSurfaceVariant: onSurfaceMuted,
+      outlineVariant: border,
+    );
     final base = ThemeData(useMaterial3: true, colorScheme: scheme);
     return base.copyWith(
-      scaffoldBackgroundColor: dark
-          ? const Color(0xFF101A22)
-          : const Color(0xFFF5F7F9),
+      scaffoldBackgroundColor: background,
+      iconTheme: IconThemeData(color: scheme.primary),
       textTheme: base.textTheme.copyWith(
         headlineMedium: base.textTheme.headlineMedium?.copyWith(
           fontWeight: FontWeight.w700,
@@ -44,10 +44,10 @@ class AppTheme {
         ),
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: dark
-            ? const Color(0xFF101A22)
-            : const Color(0xFFF5F7F9),
-        foregroundColor: scheme.onSurface,
+        backgroundColor: background,
+        foregroundColor: scheme.primary,
+        iconTheme: IconThemeData(color: scheme.primary),
+        actionsIconTheme: IconThemeData(color: scheme.primary),
         surfaceTintColor: Colors.transparent,
         centerTitle: false,
         elevation: 0,

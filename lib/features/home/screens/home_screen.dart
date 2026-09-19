@@ -267,27 +267,13 @@ class _HomeScreenState extends State<HomeScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          children: [
-            Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                Icons.inventory_2_outlined,
-                size: 20,
-                color: theme.colorScheme.onPrimary,
-              ),
-            ),
-            const SizedBox(width: 10),
-            const Text(
-              'ARCA',
-              style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 2),
-            ),
-          ],
+        title: ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Image.asset(
+            'logo/playstore_icon.png',
+            width: 34,
+            height: 34,
+          ),
         ),
         actions: [
           IconButton(
@@ -359,63 +345,39 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  Container(
-                    padding: const EdgeInsets.all(22),
-                    decoration: BoxDecoration(
-                      color: AppTheme.ink,
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Row(
+                  Material(
+                    color: AppTheme.primary,
+                    borderRadius: BorderRadius.circular(20),
+                    child: InkWell(
+                      onTap: _scan,
+                      borderRadius: BorderRadius.circular(20),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 18,
+                        ),
+                        child: Row(
                           children: [
                             Icon(
                               Icons.document_scanner_outlined,
-                              color: AppTheme.accent,
-                              size: 28,
+                              color: Colors.white,
+                              size: 24,
                             ),
-                            SizedBox(width: 10),
-                            Text(
-                              'DU PAPIER AU PDF',
-                              style: TextStyle(
-                                color: AppTheme.accent,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 1.4,
+                            SizedBox(width: 14),
+                            Expanded(
+                              child: Text(
+                                'Scanner un document',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16,
+                                ),
                               ),
                             ),
+                            Icon(Icons.chevron_right, color: Colors.white),
                           ],
                         ),
-                        const SizedBox(height: 18),
-                        Text(
-                          'Un scan. Et c’est classé.',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Une ou plusieurs pages, réunies dans un PDF et rangées au bon endroit.',
-                          style: TextStyle(
-                            color: Color(0xFFCCDAE4),
-                            height: 1.5,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        FilledButton.icon(
-                          onPressed: _scan,
-                          style: FilledButton.styleFrom(
-                            backgroundColor: AppTheme.accent,
-                            foregroundColor: AppTheme.ink,
-                          ),
-                          icon: const Icon(
-                            Icons.add_a_photo_outlined,
-                            size: 20,
-                          ),
-                          label: const Text('Scanner un document'),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),
