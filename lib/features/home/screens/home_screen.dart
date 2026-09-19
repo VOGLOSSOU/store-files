@@ -10,7 +10,6 @@ import '../../../shared/widgets/tag_sheet.dart';
 import '../../../shared/widgets/folder_export_dialog.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/document_thumbnail.dart';
-import '../../../shared/theme/app_theme.dart';
 import '../../scanner/screens/folder_picker_screen.dart';
 import '../../document/screens/document_viewer_screen.dart';
 import '../../folder/screens/folder_detail_screen.dart';
@@ -342,71 +341,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  Material(
-                    color: AppTheme.primary,
-                    borderRadius: BorderRadius.circular(20),
-                    child: InkWell(
-                      onTap: _scan,
-                      borderRadius: BorderRadius.circular(20),
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 18,
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.document_scanner_outlined,
-                              color: Colors.white,
-                              size: 24,
-                            ),
-                            SizedBox(width: 14),
-                            Expanded(
-                              child: Text(
-                                'Scanner un document',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ),
-                            Icon(Icons.chevron_right, color: Colors.white),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _importing ? null : _import,
-                            icon: const Icon(
-                              Icons.file_upload_outlined,
-                              size: 20,
-                            ),
-                            label: Text(_importing ? 'Import…' : 'Importer'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () => _showCreateDialog(),
-                            icon: const Icon(
-                              Icons.create_new_folder_outlined,
-                              size: 20,
-                            ),
-                            label: const Text('Créer un dossier'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                   const SizedBox(height: 28),
                   Row(
                     children: [
@@ -537,6 +471,53 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _openActions,
+        tooltip: 'Ajouter',
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  Future<void> _openActions() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.create_new_folder_outlined),
+              title: const Text('Créer un dossier'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showCreateDialog();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.file_upload_outlined),
+              title: const Text('Importer un fichier'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _import();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.document_scanner_outlined),
+              title: const Text('Scanner un document'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _scan();
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
         ),
       ),
     );
