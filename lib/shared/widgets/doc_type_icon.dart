@@ -9,23 +9,25 @@ class DocTypeIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (icon, color) = _resolve(type);
-    return Icon(icon, color: color, size: size);
+    final color = Theme.of(context).colorScheme.primary;
+    return Icon(_resolve(type), color: color, size: size);
   }
 
-  (IconData, Color) _resolve(DocumentType t) {
+  // Une seule couleur (celle du thème) pour tous les types : la différence
+  // se lit sur la forme de l'icône, pas sur un code couleur par extension.
+  IconData _resolve(DocumentType t) {
     switch (t) {
       case DocumentType.pdf:
-        return (Icons.picture_as_pdf, Colors.red.shade600);
+        return Icons.picture_as_pdf;
       case DocumentType.docx:
       case DocumentType.doc:
-        return (Icons.description, Colors.blue.shade600);
+        return Icons.description;
       case DocumentType.png:
       case DocumentType.jpg:
       case DocumentType.jpeg:
-        return (Icons.image, Colors.green.shade600);
+        return Icons.image;
       case DocumentType.unknown:
-        return (Icons.insert_drive_file, Colors.grey);
+        return Icons.insert_drive_file;
     }
   }
 }

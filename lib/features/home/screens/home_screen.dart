@@ -10,6 +10,7 @@ import '../../../shared/widgets/tag_sheet.dart';
 import '../../../shared/widgets/folder_export_dialog.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/document_thumbnail.dart';
+import '../../../shared/widgets/doc_type_icon.dart';
 import '../../scanner/screens/folder_picker_screen.dart';
 import '../../document/screens/document_viewer_screen.dart';
 import '../../folder/screens/folder_detail_screen.dart';
@@ -595,7 +596,7 @@ class _GlobalSearchDelegate extends SearchDelegate<Object?> {
               _header(ctx, 'Fichiers'),
               ...result.docs.map(
                 (d) => ListTile(
-                  leading: _docIcon(d),
+                  leading: DocTypeIcon(type: d.type),
                   title: Text(d.name),
                   subtitle: Text(
                     '${d.type.name.toUpperCase()} · ${d.sizeLabel}',
@@ -626,19 +627,6 @@ class _GlobalSearchDelegate extends SearchDelegate<Object?> {
       ),
     ),
   );
-
-  Widget _docIcon(Document d) {
-    final (icon, color) = switch (d.type) {
-      DocumentType.pdf => (Icons.picture_as_pdf, Colors.red.shade600),
-      DocumentType.docx ||
-      DocumentType.doc => (Icons.description, Colors.blue.shade600),
-      DocumentType.png ||
-      DocumentType.jpg ||
-      DocumentType.jpeg => (Icons.image, Colors.green.shade600),
-      _ => (Icons.insert_drive_file, Colors.grey),
-    };
-    return Icon(icon, color: color);
-  }
 }
 
 class _SearchResult {

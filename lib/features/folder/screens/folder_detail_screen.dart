@@ -320,7 +320,6 @@ class _FolderDetailScreenState extends State<FolderDetailScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mon classeur'),
         actions: [
           PopupMenuButton<String>(
             tooltip: 'Options du dossier',

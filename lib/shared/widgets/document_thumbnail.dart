@@ -82,7 +82,7 @@ class _DocumentThumbnailState extends State<DocumentThumbnail> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
               decoration: BoxDecoration(
-                color: Colors.red.shade700,
+                color: scheme.primary,
                 borderRadius: BorderRadius.circular(3),
               ),
               child: const Text(
